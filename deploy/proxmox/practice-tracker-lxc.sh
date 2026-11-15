@@ -5,14 +5,17 @@
 #   ./practice-tracker-lxc.sh install            # new container, settings from env vars below
 #   ./practice-tracker-lxc.sh update <CTID>      # new code into an existing container
 #
-# Code source: REPO_URL (git, cloned inside the container) or, if unset, the checkout this
-# script lives in (packed and pushed with pct push). For a private repo use
-# REPO_URL=https://<read-only-token>@github.com/<owner>/<repo>, or run from a local checkout.
+# One-liner (no checkout needed, clones the public repo inside the container):
+#   bash -c "$(curl -fsSL https://raw.githubusercontent.com/matbonora/practice-tracker/main/deploy/proxmox/practice-tracker-lxc.sh)" -- install
+#
+# Code source: the checkout this script lives in (packed and pushed with pct push) or, when run
+# without a checkout or with REPO_URL set, a git clone inside the container.
 #
 # Settings (env vars, all optional):
 #   CTID (next free id)  CT_HOSTNAME=practice  STORAGE=local-lvm  TEMPLATE_STORAGE=local
 #   BRIDGE=vmbr0  IP=dhcp (or 192.168.1.50/24,gw=192.168.1.1)  CORES=1  MEMORY=512  DISK=4
-#   TZ_NAME=Europe/Zurich  REPO_URL=  REPO_REF=main  PORT=8000
+#   TZ_NAME=Europe/Zurich  REPO_URL=https://github.com/matbonora/practice-tracker  REPO_REF=main
+#   PORT=8000
 set -euo pipefail
 
 CT_HOSTNAME=${CT_HOSTNAME:-practice}
@@ -29,7 +32,16 @@ REPO_REF=${REPO_REF:-main}
 PORT=${PORT:-8000}
 APP_DIR=/opt/practice-tracker
 DATA_DIR=/var/lib/practice-tracker
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+DEFAULT_REPO=https://github.com/matbonora/practice-tracker
+SCRIPT_PATH=${BASH_SOURCE[0]:-}
+SRC_DIR=""
+if [[ -n $SCRIPT_PATH && -f $SCRIPT_PATH ]]; then
+  SRC_DIR="$(cd "$(dirname "$SCRIPT_PATH")/../.." && pwd)"
+fi
+# no local checkout (e.g. run via curl): clone from GitHub inside the container
+if [[ -z $REPO_URL && ! -f ${SRC_DIR:-/nonexistent}/pyproject.toml ]]; then
+  REPO_URL=$DEFAULT_REPO
+fi
 
 msg() { printf '\e[1;34m==>\e[0m %s\n' "$*"; }
 die() { printf '\e[1;31mERROR:\e[0m %s\n' "$*" >&2; exit 1; }
@@ -69,7 +81,6 @@ push_code() {
     msg "Fetching $REPO_URL ($REPO_REF)"
     in_ct "if [ -d $APP_DIR/.git ]; then git -C $APP_DIR fetch -q origin && git -C $APP_DIR checkout -q $REPO_REF && git -C $APP_DIR reset -q --hard origin/$REPO_REF; else rm -rf $APP_DIR && git clone -q --branch $REPO_REF $REPO_URL $APP_DIR; fi"
   else
-    [[ -f $SRC_DIR/pyproject.toml ]] || die "set REPO_URL, or run the script from inside the checkout"
     msg "Pushing code from $SRC_DIR"
     local tarball
     tarball=$(mktemp /tmp/practice-tracker.XXXX.tar.gz)

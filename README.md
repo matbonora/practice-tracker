@@ -8,12 +8,16 @@ Python 3.12+, FastAPI, SQLite, plain-JS PWA. No build step.
 
 ## Run
 
-**Proxmox (recommended):** on the Proxmox host, from this checkout:
+**Proxmox (recommended):** on the Proxmox host as root:
 
 ```bash
-./deploy/proxmox/practice-tracker-lxc.sh install          # creates a Debian LXC, prints URL + tokens
-./deploy/proxmox/practice-tracker-lxc.sh update <CTID>    # deploy new code
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/matbonora/practice-tracker/main/deploy/proxmox/practice-tracker-lxc.sh)" -- install
+# later, to update CT 123 to the latest main:
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/matbonora/practice-tracker/main/deploy/proxmox/practice-tracker-lxc.sh)" -- update 123
 ```
+
+It creates a Debian LXC, installs the app from GitHub and prints the URL and tokens. From a local
+checkout, `./deploy/proxmox/practice-tracker-lxc.sh install` pushes that checkout instead.
 
 Settings via env vars (`CTID`, `STORAGE`, `BRIDGE`, `IP`, `MEMORY`, `REPO_URL`, ...), see the script header.
 With `REPO_URL` set, the container clones from git instead of receiving this checkout.
