@@ -6,7 +6,8 @@
 #   ./practice-tracker-lxc.sh update <CTID>      # new code into an existing container
 #
 # Code source: REPO_URL (git, cloned inside the container) or, if unset, the checkout this
-# script lives in (packed and pushed with pct push).
+# script lives in (packed and pushed with pct push). For a private repo use
+# REPO_URL=https://<read-only-token>@github.com/<owner>/<repo>, or run from a local checkout.
 #
 # Settings (env vars, all optional):
 #   CTID (next free id)  CT_HOSTNAME=practice  STORAGE=local-lvm  TEMPLATE_STORAGE=local
