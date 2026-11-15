@@ -1,0 +1,75 @@
+# Seed for the piano hobby. Loaded once into an empty database; edit in the app afterwards.
+name: Piano
+color: "#4f6bed"
+weekly_goal_min: 150
+
+kinds:
+  - name: Piece
+    review_enabled: true
+    item_fields:
+      - {name: composer, type: text}
+      - {name: target_bpm, type: number}
+      - {name: memorised, type: choice, options: ["no", "partly", "yes"]}
+    segment_fields:
+      - {name: bpm, type: number}
+      - {name: bars, type: text}
+      - {name: quality, type: number}
+    focus_options: [slow practice, hands separate, section, memory, run-through, performance]
+  - name: Scale
+    item_fields:
+      - {name: key, type: text}
+      - {name: mode, type: choice, options: [major, minor, chromatic]}
+    segment_fields:
+      - {name: minor_form, type: choice, options: [natural, harmonic, melodic]}
+      - {name: hands, type: choice, options: [left, right, both]}
+      - {name: octaves, type: number}
+      - {name: bpm, type: number}
+      - {name: note_value, type: choice, options: [quarter, eighth, triplet, sixteenth]}
+    focus_options: [scale runs, arpeggios, broken chords, contrary motion, thirds, sixths, cadence]
+  - name: Sight reading source
+    item_fields:
+      - {name: level, type: text}
+    segment_fields:
+      - {name: pieces_read, type: number}
+    focus_options: [new material, rhythm first, no stopping]
+  - name: Rhythm exercise
+    item_fields:
+      - {name: time_signature, type: text}
+    segment_fields:
+      - {name: bpm, type: number}
+    focus_options: [clapping, polyrhythm, subdivision]
+  - name: Theory topic
+    focus_options: [intervals, chords, harmony analysis, ear training]
+
+areas:
+  - {name: Pieces, target: 0.50, kind: Piece}
+  - {name: Scales & technique, target: 0.15, kind: Scale, warmup: true}
+  - {name: Sight reading, target: 0.15, kind: Sight reading source}
+  - {name: Rhythm, target: 0.10, kind: Rhythm exercise}
+  - {name: Theory & ear, target: 0.10, kind: Theory topic}
+
+items:
+  - {area: Scales & technique, title: C major, attributes: {key: C, mode: major}}
+  - {area: Scales & technique, title: G major, attributes: {key: G, mode: major}}
+  - {area: Scales & technique, title: D major, attributes: {key: D, mode: major}}
+  - {area: Scales & technique, title: A major, attributes: {key: A, mode: major}}
+  - {area: Scales & technique, title: E major, attributes: {key: E, mode: major}}
+  - {area: Scales & technique, title: B major, attributes: {key: B, mode: major}}
+  - {area: Scales & technique, title: F♯ major, attributes: {key: F♯, mode: major}}
+  - {area: Scales & technique, title: D♭ major, attributes: {key: D♭, mode: major}}
+  - {area: Scales & technique, title: A♭ major, attributes: {key: A♭, mode: major}}
+  - {area: Scales & technique, title: E♭ major, attributes: {key: E♭, mode: major}}
+  - {area: Scales & technique, title: B♭ major, attributes: {key: B♭, mode: major}}
+  - {area: Scales & technique, title: F major, attributes: {key: F, mode: major}}
+  - {area: Scales & technique, title: A minor, attributes: {key: A, mode: minor}}
+  - {area: Scales & technique, title: E minor, attributes: {key: E, mode: minor}}
+  - {area: Scales & technique, title: B minor, attributes: {key: B, mode: minor}}
+  - {area: Scales & technique, title: F♯ minor, attributes: {key: F♯, mode: minor}}
+  - {area: Scales & technique, title: C♯ minor, attributes: {key: C♯, mode: minor}}
+  - {area: Scales & technique, title: G♯ minor, attributes: {key: G♯, mode: minor}}
+  - {area: Scales & technique, title: E♭ minor, attributes: {key: E♭, mode: minor}}
+  - {area: Scales & technique, title: B♭ minor, attributes: {key: B♭, mode: minor}}
+  - {area: Scales & technique, title: F minor, attributes: {key: F, mode: minor}}
+  - {area: Scales & technique, title: C minor, attributes: {key: C, mode: minor}}
+  - {area: Scales & technique, title: G minor, attributes: {key: G, mode: minor}}
+  - {area: Scales & technique, title: D minor, attributes: {key: D, mode: minor}}

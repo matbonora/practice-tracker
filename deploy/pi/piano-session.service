@@ -1,0 +1,20 @@
+# /etc/systemd/system/piano-session.service
+# Bound to the piano's USB device: piano on -> start the timer, piano off -> systemd stops this
+# unit -> stop the timer. Sessions under 2 min are discarded by the server.
+[Unit]
+Description=Piano practice session
+BindsTo=sys-subsystem-usb-piano.device
+After=sys-subsystem-usb-piano.device network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/practice.env
+ExecStart=/usr/bin/curl -fsS -m 10 -X POST \
+  -H "Authorization: Bearer ${PRACTICE_TOKEN}" -H "Content-Type: application/json" \
+  -d '{"hobby": "Piano", "source": "midi", "if_idle": true}' \
+  ${PRACTICE_URL}/api/timer/start
+ExecStop=/usr/bin/curl -fsS -m 10 -X POST \
+  -H "Authorization: Bearer ${PRACTICE_TOKEN}" -H "Content-Type: application/json" \
+  -d '{"source": "midi"}' \
+  ${PRACTICE_URL}/api/timer/stop

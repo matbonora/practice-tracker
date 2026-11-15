@@ -1,0 +1,42 @@
+# Seed for the drawing & painting hobby. Loaded once into an empty database.
+name: Drawing & painting
+color: "#d9822b"
+weekly_goal_min: 120
+
+kinds:
+  - name: Drill
+    item_fields:
+      - {name: skill, type: choice, options: [line, ellipse, perspective, value, colour]}
+    segment_fields:
+      - {name: medium, type: text}
+    focus_options: [warm-up, accuracy, speed]
+  - name: Study
+    item_fields:
+      - {name: subject, type: choice, options: [gesture, figure, anatomy, master copy, plein air, still life]}
+    segment_fields:
+      - {name: time_box, type: choice, options: ["30 s", "2 min", "5 min", "10 min", "30 min"]}
+      - {name: count, type: number}
+      - {name: medium, type: text}
+    focus_options: [from reference, from life, from memory]
+  - name: Artwork
+    item_fields:
+      - {name: medium, type: text}
+      - {name: size, type: text}
+      - {name: reference, type: text}
+      - {name: planned_hours, type: number}
+    segment_fields:
+      - {name: stage, type: choice, options: [sketch, composition, block-in, detail, finishing]}
+    focus_options: [sketch, composition, block-in, detail, finishing]
+
+areas:
+  - {name: Fundamentals, target: 0.30, kind: Drill, warmup: true}
+  - {name: Studies, target: 0.30, kind: Study}
+  - {name: Artworks, target: 0.30, kind: Artwork}
+  - {name: Sketchbook, target: 0.10}
+
+items:
+  - {area: Fundamentals, title: Lines, attributes: {skill: line}}
+  - {area: Fundamentals, title: Ellipses, attributes: {skill: ellipse}}
+  - {area: Fundamentals, title: Perspective boxes, attributes: {skill: perspective}}
+  - {area: Fundamentals, title: Value scales, attributes: {skill: value}}
+  - {area: Studies, title: Gesture, attributes: {subject: gesture}}

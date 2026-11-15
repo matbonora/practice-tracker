@@ -1,0 +1,7 @@
+# /etc/udev/rules.d/90-piano.rules
+# Replace xxxx/yyyy with the piano's IDs from `lsusb` (e.g. "ID 0499:1718" -> 0499 and 1718).
+# When the piano appears on USB, systemd gets a stable device unit and starts piano-session.service.
+ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", \
+  ATTR{idVendor}=="xxxx", ATTR{idProduct}=="yyyy", \
+  TAG+="systemd", ENV{SYSTEMD_ALIAS}="/sys/subsystem/usb/piano", \
+  ENV{SYSTEMD_WANTS}="piano-session.service"

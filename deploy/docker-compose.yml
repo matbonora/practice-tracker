@@ -1,0 +1,11 @@
+services:
+  practice-tracker:
+    build: ..
+    restart: unless-stopped
+    ports: ["8000:8000"]
+    environment:
+      # name:token pairs; generate tokens with: openssl rand -hex 24
+      PT_TOKENS: "web:CHANGE_ME,ha:CHANGE_ME,piano:CHANGE_ME,agent:CHANGE_ME"
+      PT_TZ: Europe/Zurich
+    volumes:
+      - ./data:/data

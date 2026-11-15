@@ -1,0 +1,50 @@
+# Home Assistant package: put in config/packages/practice.yaml
+# (configuration.yaml: homeassistant: packages: !include_dir_named packages)
+# secrets.yaml: practice_auth: "Bearer <ha token>"
+
+rest_command:
+  practice_toggle:
+    url: http://practice.lan:8000/api/timer/toggle
+    method: POST
+    headers:
+      Authorization: !secret practice_auth
+    content_type: application/json
+    payload: '{"hobby": "{{ hobby | default(''Piano'') }}", "source": "ha"}'
+  practice_split:
+    url: http://practice.lan:8000/api/timer/split
+    method: POST
+    headers:
+      Authorization: !secret practice_auth
+
+rest:
+  - resource: http://practice.lan:8000/api/summary
+    headers:
+      Authorization: !secret practice_auth
+    scan_interval: 30
+    binary_sensor:
+      - name: Practice running
+        value_template: "{{ value_json.running }}"
+    sensor:
+      - name: Practice elapsed
+        value_template: "{{ value_json.elapsed_min }}"
+        unit_of_measurement: min
+      - name: Practice today
+        value_template: "{{ value_json.today_min }}"
+        unit_of_measurement: min
+      - name: Practice this week
+        value_template: "{{ value_json.week_min }}"
+        unit_of_measurement: min
+      - name: Practice inbox
+        value_template: "{{ value_json.inbox }}"
+      - name: Practice reviews due
+        value_template: "{{ value_json.reviews_due }}"
+
+# Example: drawing desk button toggles a drawing session
+# automation:
+#   - alias: Drawing button
+#     triggers:
+#       - trigger: event
+#         event_type: zha_event          # adapt to your button
+#     actions:
+#       - action: rest_command.practice_toggle
+#         data: { hobby: "Drawing & painting" }
