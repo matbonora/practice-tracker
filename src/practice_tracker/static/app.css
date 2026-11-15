@@ -26,6 +26,7 @@ button, select, input, textarea { font: inherit; color: var(--ink); }
 button { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; cursor: pointer; }
 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 button.danger { color: var(--bad); }
+button:disabled { opacity: .55; cursor: default; }
 button.icon { border: 0; background: none; font-size: 1.3rem; padding: 4px 8px; }
 button.small { padding: 4px 10px; font-size: .85rem; }
 select, input, textarea { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; width: 100%; }

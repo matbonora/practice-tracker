@@ -19,6 +19,12 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/matbonora/practice-track
 It creates a Debian LXC, installs the app from GitHub and prints the URL and tokens. From a local
 checkout, `./deploy/proxmox/practice-tracker-lxc.sh install` pushes that checkout instead.
 
+**Updates:** the container has an update hook, `practice-tracker-update`. It pulls `main`, reinstalls,
+restarts and rolls back if the health check fails. It runs nightly (`AUTO_UPDATE=0` at install to
+turn off), from **Settings → Update now** in the app, or by hand: `pct exec <CTID> -- practice-tracker-update`.
+The app only writes a request file (`update-requested` in the data dir); a systemd path unit starts
+the hook as root, and the hook reports to `update-status.json`. Logs: `journalctl -u practice-tracker-update`.
+
 Settings via env vars (`CTID`, `STORAGE`, `BRIDGE`, `IP`, `MEMORY`, `REPO_URL`, ...), see the script header.
 With `REPO_URL` set, the container clones from git instead of receiving this checkout.
 

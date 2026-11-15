@@ -25,6 +25,10 @@ PT_TOKENS='web:dev' PT_DATA_DIR=./data practice-tracker   # http://localhost:800
   (`Kind` field lists, focus options, `presets/*.yaml`), never code per hobby.
 - A running timer is a session with `ended_at = NULL`; only one can run.
 - No deletes through MCP; structure is archived (`archived_at`, status `retired`).
+- Self-update: the app never runs privileged code. It writes `update-requested` to the data dir;
+  the root hook `deploy/proxmox/practice-tracker-update.sh` (systemd path unit + nightly timer)
+  pulls, reinstalls, health-checks, rolls back and writes `update-status.json`. Pushes to `main`
+  go live on the next update, so keep `main` deployable.
 
 ## Conventions
 

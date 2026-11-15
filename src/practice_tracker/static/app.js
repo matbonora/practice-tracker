@@ -561,8 +561,11 @@ function openSettings(message = "") {
     <button id="s-save" class="primary" style="margin-top:8px">Save</button>
     <h2>Export</h2>
     <div class="row"><button data-export="json">JSON</button><button data-export="csv">CSV</button></div>
+    <h2>Server</h2>
+    <div id="s-update" class="quiet">Loading update status…</div>
     <h2>API</h2>
     <p><a href="/api/docs" target="_blank">REST API docs</a> · MCP endpoint: <code>${esc(location.origin)}/mcp</code></p>`;
+  if (localStorage.getItem("pt_token")) showUpdateStatus();
   const body = $("#dialog-body");
   $("[data-close]", body).onclick = () => $("#dialog").close();
   $("#s-save").onclick = async () => {
@@ -579,6 +582,58 @@ function openSettings(message = "") {
     a.click();
   })));
   if (!$("#dialog").open) $("#dialog").showModal();
+}
+
+// ---------------------------------------------------------------- update
+
+const UPDATE_TEXT = { running: "Updating…", ok: "Updated", up_to_date: "Up to date", failed: "Update failed",
+  rolled_back: "Update failed, rolled back" };
+
+function updateHtml(s) {
+  const last = s.last;
+  const line = last ? `${UPDATE_TEXT[last.state] || last.state}: ${esc(last.message)}<br>
+    Version <code>${esc((last.commit || "").slice(0, 7) || "?")}</code> (${esc(last.ref)}) · ${fmtDate(last.time)}` : "";
+  const busy = s.requested || (last && last.state === "running");
+  let note = "";
+  if (!s.hook_installed && !s.requested) note = "No update hook on this server (only the Proxmox install has one).";
+  if (s.stale_request) note = "The update request was not picked up. Is the update hook installed?";
+  return `<p>${line}</p>${note ? `<p>${esc(note)}</p>` : ""}
+    <div class="row"><button id="u-run" class="primary" ${busy ? "disabled" : ""}>${busy ? "Update in progress…" : "Update now"}</button>
+    <button id="u-force" ${busy ? "disabled" : ""}>Reinstall</button></div>`;
+}
+
+async function showUpdateStatus() {
+  const box = $("#s-update");
+  if (!box) return;
+  const s = await api("/api/system/update");
+  box.innerHTML = updateHtml(s);
+  const start = (force) => guard(async () => {
+    const before = s.last && s.last.time;
+    await api("/api/system/update", { method: "POST", body: { force } });
+    box.innerHTML = updateHtml({ ...s, requested: true });
+    pollUpdate(before);
+  });
+  $("#u-run").onclick = () => start(false);
+  $("#u-force").onclick = () => start(true);
+}
+
+async function pollUpdate(before, tries = 0) {
+  // The server restarts during an update, so failed requests are expected for a few seconds.
+  if (tries > 100) return toast("No answer from the update after 5 minutes. Check the server.");
+  await new Promise((r) => setTimeout(r, 3000));
+  let s;
+  try { s = await api("/api/system/update"); } catch { return pollUpdate(before, tries + 1); }
+  const box = $("#s-update");
+  if (box) box.innerHTML = updateHtml(s);
+  const last = s.last;
+  const finished = last && last.time !== before && last.state !== "running" && !s.requested;
+  if (!finished) {
+    if (s.stale_request) return;
+    return pollUpdate(before, tries + 1);
+  }
+  toast(`${UPDATE_TEXT[last.state] || last.state}: ${last.message}`);
+  if (last.state === "ok") setTimeout(() => location.reload(), 1500);  // load the new app code
+  else if (box) showUpdateStatus();
 }
 
 // ------------------------------------------------------------------ boot

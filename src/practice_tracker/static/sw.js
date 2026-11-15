@@ -1,5 +1,5 @@
 // App-shell cache only. API calls always go to the network (online-only by design).
-const CACHE = "practice-shell-v1";
+const CACHE = "practice-shell-v2";
 const SHELL = ["/", "/static/app.js", "/static/app.css", "/static/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

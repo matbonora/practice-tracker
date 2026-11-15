@@ -26,6 +26,7 @@ from .models import (
 from .serialize import parse_dt, to_dict
 from .service import Tracker
 from .stats import Stats
+from .system import request_update, update_status
 
 router = APIRouter(prefix="/api")
 
@@ -437,6 +438,22 @@ def stats_split(hobby: str, days: int = 14, t: Tracker = T):
 @router.get("/stats/streak")
 def stats_streak(hobby: str, t: Tracker = T):
     return Stats(t).streak(t.resolve_hobby(hobby))
+
+
+# ------------------------------------------------------------------ system
+
+class UpdateIn(BaseModel):
+    force: bool = False
+
+
+@router.get("/system/update")
+def get_update_status(request: Request):
+    return update_status(request.app.state.settings)
+
+
+@router.post("/system/update", status_code=202)
+def post_update(request: Request, body: UpdateIn = UpdateIn()):
+    return request_update(request.app.state.settings, body.force)
 
 
 # ------------------------------------------------------------------ export

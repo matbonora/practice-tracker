@@ -5,6 +5,12 @@
 #   ./practice-tracker-lxc.sh install            # new container, settings from env vars below
 #   ./practice-tracker-lxc.sh update <CTID>      # new code into an existing container
 #
+# Update hook: the container gets /usr/local/bin/practice-tracker-update. It pulls the git repo
+# (PT_REPO_URL in /etc/practice-tracker.env), reinstalls, restarts and rolls back if the health
+# check fails. It runs every night (systemd timer; AUTO_UPDATE=0 to disable), from the app's
+# "Update now" button (Settings) and by hand:
+#   pct exec <CTID> -- practice-tracker-update
+#
 # One-liner (no checkout needed, clones the public repo inside the container):
 #   bash -c "$(curl -fsSL https://raw.githubusercontent.com/matbonora/practice-tracker/main/deploy/proxmox/practice-tracker-lxc.sh)" -- install
 #
@@ -15,7 +21,7 @@
 #   CTID (next free id)  CT_HOSTNAME=practice  STORAGE=local-lvm  TEMPLATE_STORAGE=local
 #   BRIDGE=vmbr0  IP=dhcp (or 192.168.1.50/24,gw=192.168.1.1)  CORES=1  MEMORY=512  DISK=4
 #   TZ_NAME=Europe/Zurich  REPO_URL=https://github.com/matbonora/practice-tracker  REPO_REF=main
-#   PORT=8000
+#   PORT=8000  AUTO_UPDATE=1  UPDATE_TIME=04:00
 set -euo pipefail
 
 CT_HOSTNAME=${CT_HOSTNAME:-practice}
@@ -30,6 +36,8 @@ TZ_NAME=${TZ_NAME:-Europe/Zurich}
 REPO_URL=${REPO_URL:-}
 REPO_REF=${REPO_REF:-main}
 PORT=${PORT:-8000}
+AUTO_UPDATE=${AUTO_UPDATE:-1}
+UPDATE_TIME=${UPDATE_TIME:-04:00}
 APP_DIR=/opt/practice-tracker
 DATA_DIR=/var/lib/practice-tracker
 DEFAULT_REPO=https://github.com/matbonora/practice-tracker
@@ -109,6 +117,53 @@ install_python_env() {
   "
 }
 
+install_hook() {
+  local repo=${REPO_URL:-$DEFAULT_REPO}
+  msg "Installing update hook (auto update: $([[ $AUTO_UPDATE == 1 ]] && echo "daily $UPDATE_TIME" || echo off))"
+  in_ct "grep -q '^PT_REPO_URL=' /etc/practice-tracker.env || { echo 'PT_REPO_URL=$repo'; echo 'PT_REPO_REF=$REPO_REF'; } >> /etc/practice-tracker.env"
+  in_ct "install -m 755 $APP_DIR/deploy/proxmox/practice-tracker-update.sh /usr/local/bin/practice-tracker-update
+cat > /etc/systemd/system/practice-tracker-update.service <<'UNIT'
+[Unit]
+Description=Practice Tracker update (git pull, reinstall, restart, rollback on failure)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/practice-tracker-update
+UNIT
+cat > /etc/systemd/system/practice-tracker-update.timer <<'UNIT'
+[Unit]
+Description=Nightly Practice Tracker update
+
+[Timer]
+OnCalendar=*-*-* $UPDATE_TIME
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+cat > /etc/systemd/system/practice-tracker-update.path <<'UNIT'
+[Unit]
+Description=Run the Practice Tracker update when the app requests it
+
+[Path]
+PathExists=$DATA_DIR/update-requested
+Unit=practice-tracker-update.service
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now practice-tracker-update.path >/dev/null 2>&1"
+  if [[ $AUTO_UPDATE == 1 ]]; then
+    in_ct "systemctl enable --now practice-tracker-update.timer >/dev/null 2>&1"
+  else
+    in_ct "systemctl disable --now practice-tracker-update.timer >/dev/null 2>&1 || true"
+  fi
+}
+
 cmd_install() {
   require_host
   CTID=${CTID:-$(pvesh get /cluster/nextid)}
@@ -141,6 +196,8 @@ PT_PRESETS_DIR=$APP_DIR/presets
 PT_TZ=$TZ_NAME
 PT_PORT=$PORT
 PT_TOKENS=web:$t_web,ha:$t_ha,piano:$t_piano,agent:$t_agent
+PT_REPO_URL=${REPO_URL:-$DEFAULT_REPO}
+PT_REPO_REF=$REPO_REF
 EOF
 chmod 600 /etc/practice-tracker.env"
   in_ct "cat > /etc/systemd/system/practice-tracker.service <<'EOF'
@@ -164,6 +221,7 @@ PrivateTmp=yes
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload && systemctl enable --now practice-tracker"
+  install_hook
 
   local ip
   ip=$(in_ct "hostname -I | awk '{print \$1}'")
@@ -181,6 +239,7 @@ Tokens (also in /etc/practice-tracker.env inside the CT; keep them secret):
 
 MCP endpoint: http://$ip:$PORT/mcp   API docs: http://$ip:$PORT/api/docs
 Backups: include CT $CTID in your vzdump schedule (data lives in $DATA_DIR).
+Updates: nightly from ${REPO_URL:-$DEFAULT_REPO} ($REPO_REF); now: pct exec $CTID -- practice-tracker-update
 Note: phones need HTTPS for the PWA install prompt - put it behind your reverse proxy.
 EOF
 }
@@ -190,8 +249,16 @@ cmd_update() {
   CTID=${1:-${CTID:-}}
   [[ -n $CTID ]] || die "usage: $0 update <CTID>"
   pct status "$CTID" | grep -q running || die "CT $CTID is not running"
+  if [[ -n $REPO_URL ]] && in_ct "test -x /usr/local/bin/practice-tracker-update"; then
+    # normal case: the hook in the container pulls, reinstalls and rolls back on failure
+    in_ct "practice-tracker-update"
+    install_hook  # refresh timer settings (AUTO_UPDATE, UPDATE_TIME)
+    return
+  fi
+  # local checkout, or an older install without the hook
   push_code
   install_python_env
+  install_hook
   in_ct "systemctl restart practice-tracker"
   sleep 2
   in_ct "curl -fsS http://localhost:$PORT/api/health >/dev/null" && msg "Updated and running"
